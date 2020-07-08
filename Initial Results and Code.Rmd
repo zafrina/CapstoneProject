@@ -1,0 +1,411 @@
+---
+title: "ckme project"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Import dataset
+
+```{r}
+data <- read.csv("/Users/zafrinasomani/Desktop/CKME 136/mental-health-in-tech-2016.csv", header = T, na.strings = c("", "NA"))
+clean <- data
+```
+
+Inspect dataset 
+
+```{r}
+head(clean)
+#tail(clean)
+summary(clean)
+str(clean)
+dim(clean)
+head(names(clean))
+```
+
+Assign correct data types
+
+```{r}
+clean$Are.you.self.employed. <- as.factor(clean$Are.you.self.employed.)
+clean$Is.your.employer.primarily.a.tech.company.organization. <- as.factor(clean$Is.your.employer.primarily.a.tech.company.organization.)
+clean$Is.your.primary.role.within.your.company.related.to.tech.IT. <- as.factor(clean$Is.your.primary.role.within.your.company.related.to.tech.IT.)
+clean$Do.you.have.medical.coverage..private.insurance.or.state.provided..which.includes.treatment.of..mental.health.issues. <- as.factor(clean$Do.you.have.medical.coverage..private.insurance.or.state.provided..which.includes.treatment.of..mental.health.issues.)
+clean$Do.you.have.previous.employers. <- as.factor(clean$Do.you.have.previous.employers.)
+clean$Have.you.ever.sought.treatment.for.a.mental.health.issue.from.a.mental.health.professional. <- as.factor(clean$Have.you.ever.sought.treatment.for.a.mental.health.issue.from.a.mental.health.professional.)
+```
+
+Removed individuals who are self-employed and who do not work in an IT company or in the tech department
+
+```{r}
+clean <- subset(clean, clean$Are.you.self.employed. == 0)
+clean <- subset(clean, clean$Is.your.primary.role.within.your.company.related.to.tech.IT. == 1 | clean$Is.your.employer.primarily.a.tech.company.organization. == 1)
+```
+
+Remove questions questions that were asked only to self-employed individuals. 
+
+```{r}
+clean$Do.you.have.medical.coverage..private.insurance.or.state.provided..which.includes.treatment.of..mental.health.issues. <- NULL
+clean$Do.you.know.local.or.online.resources.to.seek.help.for.a.mental.health.disorder. <- NULL
+clean$If.you.have.been.diagnosed.or.treated.for.a.mental.health.disorder..do.you.ever.reveal.this.to.clients.or.business.contacts. <- NULL
+clean$If.you.have.revealed.a.mental.health.issue.to.a.client.or.business.contact..do.you.believe.this.has.impacted.you.negatively. <- NULL
+clean$If.you.have.been.diagnosed.or.treated.for.a.mental.health.disorder..do.you.ever.reveal.this.to.coworkers.or.employees. <- NULL
+clean$If.you.have.revealed.a.mental.health.issue.to.a.coworker.or.employee..do.you.believe.this.has.impacted.you.negatively. <- NULL
+clean$Do.you.believe.your.productivity.is.ever.affected.by.a.mental.health.issue. <- NULL
+clean$If.yes..what.percentage.of.your.work.time..time.performing.primary.or.secondary.job.functions..is.affected.by.a.mental.health.issue. <- NULL
+```
+
+Remove outliers in age which appear to be data entry errors:
+
+```{r}
+clean <- subset(clean, !clean$What.is.your.age. == 323)
+clean <- subset(clean, !clean$What.is.your.age. == 3)
+clean <- subset(clean, !clean$What.is.your.age. == 99)
+```
+
+Distribution of Age 
+
+```{r, echo=FALSE}
+boxplot(clean$What.is.your.age., main = "Age Boxplot")
+hist(clean$What.is.your.age., main = "Age Histogram", xlab = "Age")
+```
+
+Rename columns - shorten column names 
+
+```{r}
+names(clean)[names(clean) == "Are.you.self.employed."] <- c("self_employed")
+names(clean)[names(clean) == "How.many.employees.does.your.company.or.organization.have."] <- c("no_of_employees")
+names(clean)[names(clean) == "Is.your.employer.primarily.a.tech.company.organization."] <- c("tech_company")
+names(clean)[names(clean) == "Is.your.primary.role.within.your.company.related.to.tech.IT."] <- c("tech_role")
+names(clean)[names(clean) == "Does.your.employer.provide.mental.health.benefits.as.part.of.healthcare.coverage."] <- c("mental_health_benefits")
+names(clean)[names(clean) == "Do.you.know.the.options.for.mental.health.care.available.under.your.employer.provided.coverage."] <- c("options_mental_health")
+names(clean)[names(clean) == "Has.your.employer.ever.formally.discussed.mental.health..for.example..as.part.of.a.wellness.campaign.or.other.official.communication.."] <- c("wellness_campaign")
+names(clean)[names(clean) == "Does.your.employer.offer.resources.to.learn.more.about.mental.health.concerns.and.options.for.seeking.help."] <- c("mh_resources")
+names(clean)[names(clean) == "Is.your.anonymity.protected.if.you.choose.to.take.advantage.of.mental.health.or.substance.abuse.treatment.resources.provided.by.your.employer."] <- c("anonymity")
+names(clean)[names(clean) == "If.a.mental.health.issue.prompted.you.to.request.a.medical.leave.from.work..asking.for.that.leave.would.be."] <- c("mh_leave_request")
+names(clean)[names(clean) == "Do.you.think.that.discussing.a.mental.health.disorder.with.your.employer.would.have.negative.consequences."] <- c("mh_discuss_neg_cons")
+names(clean)[names(clean) == "Do.you.think.that.discussing.a.physical.health.issue.with.your.employer.would.have.negative.consequences."] <- c("ph_discuss_neg_cons")
+names(clean)[names(clean) == "Would.you.feel.comfortable.discussing.a.mental.health.disorder.with.your.coworkers."] <- c("mh_discuss_coworker")
+names(clean)[names(clean) == "Would.you.feel.comfortable.discussing.a.mental.health.disorder.with.your.direct.supervisor.s.."] <- c("mh_discuss_supervisor")
+names(clean)[names(clean) == "Do.you.feel.that.your.employer.takes.mental.health.as.seriously.as.physical.health."] <- c("mh_serious_ph")
+names(clean)[names(clean) == "Have.you.heard.of.or.observed.negative.consequences.for.co.workers.who.have.been.open.about.mental.health.issues.in.your.workplace."] <- c("observe_negcons_mh")
+names(clean)[names(clean) == "Do.you.have.previous.employers."] <- c("previous_employer")
+names(clean)[names(clean) == "Have.your.previous.employers.provided.mental.health.benefits."] <- c("pe_mh_benefits")
+names(clean)[names(clean) == "Were.you.aware.of.the.options.for.mental.health.care.provided.by.your.previous.employers."] <- c("pe_mh_options")
+names(clean)[names(clean) == "Did.your.previous.employers.ever.formally.discuss.mental.health..as.part.of.a.wellness.campaign.or.other.official.communication.."] <- c("pe_wellness_campaign")
+names(clean)[names(clean) == "Did.your.previous.employers.provide.resources.to.learn.more.about.mental.health.issues.and.how.to.seek.help."] <- c("pe_mh_resources")
+names(clean)[names(clean) == "Was.your.anonymity.protected.if.you.chose.to.take.advantage.of.mental.health.or.substance.abuse.treatment.resources.with.previous.employers."] <- c("pe_anonymity")
+names(clean)[names(clean) == "Do.you.think.that.discussing.a.mental.health.disorder.with.previous.employers.would.have.negative.consequences."] <- c("pe_mh_discuss_negcons")
+names(clean)[names(clean) == "Do.you.think.that.discussing.a.physical.health.issue.with.previous.employers.would.have.negative.consequences."] <- c("pe_ph_discuss_negcons")
+names(clean)[names(clean) == "Would.you.have.been.willing.to.discuss.a.mental.health.issue.with.your.previous.co.workers."] <- c("pe_mh_discuss_coworker")
+names(clean)[names(clean) == "Would.you.have.been.willing.to.discuss.a.mental.health.issue.with.your.direct.supervisor.s.."] <- c("pe_mh_discuss_supervisor")
+names(clean)[names(clean) == "Did.you.feel.that.your.previous.employers.took.mental.health.as.seriously.as.physical.health."] <- c("pe_mh_serious_ph")
+names(clean)[names(clean) == "Did.you.hear.of.or.observe.negative.consequences.for.co.workers.with.mental.health.issues.in.your.previous.workplaces."] <- c("pe_observe_negcons_mh")
+names(clean)[names(clean) == "Would.you.be.willing.to.bring.up.a.physical.health.issue.with.a.potential.employer.in.an.interview."] <- c("ph_interview")
+names(clean)[names(clean) == "Why.or.why.not."] <- c("ph_interview_why")
+names(clean)[names(clean) == "Would.you.bring.up.a.mental.health.issue.with.a.potential.employer.in.an.interview."] <- c("mh_interview")
+names(clean)[names(clean) == "Why.or.why.not..1"] <- c("mh_interview_why")
+names(clean)[names(clean) == "Do.you.feel.that.being.identified.as.a.person.with.a.mental.health.issue.would.hurt.your.career."] <- c("id_mh_hurt_career")
+names(clean)[names(clean) == "Do.you.think.that.team.members.co.workers.would.view.you.more.negatively.if.they.knew.you.suffered.from.a.mental.health.issue."] <- c("team_neg_view_mh")
+names(clean)[names(clean) == "How.willing.would.you.be.to.share.with.friends.and.family.that.you.have.a.mental.illness."] <- c("friends_family")
+names(clean)[names(clean) == "Have.you.observed.or.experienced.an.unsupportive.or.badly.handled.response.to.a.mental.health.issue.in.your.current.or.previous.workplace."] <- c("unsupportive_response_mh")
+names(clean)[names(clean) == "Have.your.observations.of.how.another.individual.who.discussed.a.mental.health.disorder.made.you.less.likely.to.reveal.a.mental.health.issue.yourself.in.your.current.workplace."] <- c("obs_impact")
+names(clean)[names(clean) == "Do.you.have.a.family.history.of.mental.illness."] <- c("mh_family_history")
+names(clean)[names(clean) == "Have.you.had.a.mental.health.disorder.in.the.past."] <- c("mh_past")
+names(clean)[names(clean) == "Do.you.currently.have.a.mental.health.disorder."] <- c("mh_current")
+names(clean)[names(clean) == "If.yes..what.condition.s..have.you.been.diagnosed.with."] <- c("current_diagnosis")
+names(clean)[names(clean) == "If.maybe..what.condition.s..do.you.believe.you.have."] <- c("condition_undiagnosed")
+names(clean)[names(clean) == "Have.you.been.diagnosed.with.a.mental.health.condition.by.a.medical.professional."] <- c("diagnosed_medpro")
+names(clean)[names(clean) == "If.so..what.condition.s..were.you.diagnosed.with."] <- c("condition_diagnosed_medpro")
+names(clean)[names(clean) == "Have.you.ever.sought.treatment.for.a.mental.health.issue.from.a.mental.health.professional."] <- c("sought_treatment")
+names(clean)[names(clean) == "If.you.have.a.mental.health.issue..do.you.feel.that.it.interferes.with.your.work.when.being.treated.effectively."] <- c("mhi_work_treated_effectively")
+names(clean)[names(clean) == "If.you.have.a.mental.health.issue..do.you.feel.that.it.interferes.with.your.work.when.NOT.being.treated.effectively."] <- c("mhi_work_not_treated_effectively")
+names(clean)[names(clean) == "What.is.your.age."] <- c("age")
+names(clean)[names(clean) == "What.is.your.gender."] <- c("gender")
+names(clean)[names(clean) == "What.country.do.you.live.in."] <- c("home_country")
+names(clean)[names(clean) == "What.US.state.or.territory.do.you.live.in."] <- c("home_state")
+names(clean)[names(clean) == "What.country.do.you.work.in."] <- c("work_country")
+names(clean)[names(clean) == "What.US.state.or.territory.do.you.work.in."] <- c("work_state")
+names(clean)[names(clean) == "Which.of.the.following.best.describes.your.work.position."] <- c("work_position")
+names(clean)[names(clean) == "Do.you.work.remotely."] <- c("work_remotely")
+summary(clean)
+```
+
+Clean gender variable
+
+```{r}
+clean$gender <- as.character(clean$gender)
+clean$gender[clean$gender == "Agender"] <- c("other")
+clean$gender[clean$gender == "Androgynous"] <- c("other")
+clean$gender[clean$gender == "Bigender"] <- c("other")
+clean$gender[clean$gender == "Cis female"] <- c("female")
+clean$gender[clean$gender == "cis male"] <- c("male")
+clean$gender[clean$gender == "Cis male"] <- c("male")
+clean$gender[clean$gender == "Cis Male"] <- c("male")
+clean$gender[clean$gender == "cis man"] <- c("male")
+clean$gender[clean$gender == "Cis-woman"] <- c("female")
+clean$gender[clean$gender == "cisdude"] <- c("male")
+clean$gender[clean$gender == "Cisgender Female"] <- c("female")
+clean$gender[clean$gender == "Dude"] <- c("male")
+clean$gender[clean$gender == "Enby"] <- c("other")
+clean$gender[clean$gender == "f"] <- c("female")
+clean$gender[clean$gender == "F"] <- c("female")
+clean$gender[clean$gender == "fem"] <- c("female")
+clean$gender[clean$gender == "Female"] <- c("female")
+clean$gender[clean$gender == "female "] <- c("female")
+clean$gender[clean$gender == "Female "] <- c("female")
+clean$gender[clean$gender == "Female (props for making this a freeform field, though)"] <- c("female")
+clean$gender[clean$gender == "Female assigned at birth"] <- c("female")
+clean$gender[clean$gender == "Female or Multi-Gender Femme"] <- c("female")
+clean$gender[clean$gender == "female-bodied; no feelings about gender"] <- c("female")
+clean$gender[clean$gender == "female/woman"] <- c("female")
+clean$gender[clean$gender == "fm"] <- c("female")
+clean$gender[clean$gender == "Genderfluid "] <- c("other")
+clean$gender[clean$gender == "Genderfluid (born female)"] <- c("other")
+clean$gender[clean$gender == "Genderflux demi-girl"] <- c("other")
+clean$gender[clean$gender == "genderqueer"] <- c("other")
+clean$gender[clean$gender == "Genderqueer"] <- c("other")
+clean$gender[clean$gender == "genderqueer woman"] <- c("other")
+clean$gender[clean$gender == "Human"] <- c("other")
+clean$gender[clean$gender == "I identify as female."] <- c("female")
+clean$gender[clean$gender == "m"] <- c("male")
+clean$gender[clean$gender == "M"] <- c("male")
+clean$gender[clean$gender == "mail"] <- c("male")
+clean$gender[clean$gender == "male "] <- c("male")
+clean$gender[clean$gender == "Male"] <- c("male")
+clean$gender[clean$gender == "Male "] <- c("male")
+clean$gender[clean$gender == "Male (cis)"] <- c("male")
+clean$gender[clean$gender == "Male (trans, FtM)"] <- c("male")
+clean$gender[clean$gender == "male 9:1 female, roughly"] <- c("other")
+clean$gender[clean$gender == "Male."] <- c("male")
+clean$gender[clean$gender == "Male/genderqueer"] <- c("other")
+clean$gender[clean$gender == "man"] <- c("male")
+clean$gender[clean$gender == "Man"] <- c("male")
+clean$gender[clean$gender == "N/A"] <- c("other")
+clean$gender[clean$gender == "nb masculine"] <- c("other")
+clean$gender[clean$gender == "non-binary"] <- c("other")
+clean$gender[clean$gender == "Nonbinary"] <- c("other")
+clean$gender[clean$gender == "none of your business"] <- c("other")
+clean$gender[clean$gender == "Other/Transfeminine"] <- c("other")
+clean$gender[clean$gender == "Queer"] <- c("other")
+clean$gender[clean$gender == "Sex is male"] <- c("male")
+clean$gender[clean$gender == "Transgender woman"] <- c("other")
+clean$gender[clean$gender == "Transitioned, M2F"] <- c("female")
+clean$gender[clean$gender == "Woman"] <- c("female")
+clean$gender[clean$gender == "Cis female "] <- c("female")
+clean$gender[clean$gender == "Female assigned at birth "] <- c("female")
+clean$gender[clean$gender == "Genderfluid"] <- c("other")
+clean$gender[clean$gender == "woman"] <- c("female")
+clean$gender[is.na(clean$gender)] <- c("other")
+clean$gender <- as.factor(clean$gender)
+summary(clean$gender)
+```
+
+Create new dataframe with current diagnoses - will show individuals with multiple diagnoses and what the diagnoses are 
+
+```{r}
+library(tidyr)
+library(dplyr)
+currentdiagnosis <- clean %>% separate(current_diagnosis, sep = '\\|', c("curdiag_1", "curdiag_2", "curdiag_3","curdiag_4","curdiag_5","curdiag_6","curdiag_7","curdiag_8"), fill = 'right')
+currentdiagnosis %>% select(matches('curdiag_[1-8]')) %>% str()
+currentdiagnosis <- currentdiagnosis %>% select(matches("curdiag_[1-8]")) %>% mutate_each(funs = 'as.factor')
+currentdiagnosis %>% select(matches("curdiag_[1-8]")) %>% str()
+currentdiagnosis$na_count <- as.factor(apply(is.na(currentdiagnosis), MARGIN = 1, FUN = sum))
+summary(currentdiagnosis)
+```
+
+Create new dataframe separating work positions, so each work position is in a new column
+
+```{r}
+clean$work_position <- as.factor(clean$work_position)
+job <- clean %>% separate(work_position, sep = '\\|', c("wp_1", "wp_2", "wp_3", "wp_4", "wp_5", "wp_6", "wp_7", "wp_8", "wp_9", "wp_10"), fill = 'right')
+job %>% select(matches('wp_[1-9]', 'wp_10')) %>% str()
+job <- job %>% select(matches("wp_[1-9]", "wp_10")) %>% mutate_each(funs = 'as.factor')
+job %>% select(matches("wp_[1-9]", "wp_10")) %>% str()
+job$na_count <- as.factor(apply(is.na(job), MARGIN = 1, FUN = sum))
+summary(job)
+```
+
+Create new dataframe separating unconditioned diagnoses
+
+```{r}
+undiagnosed <- clean %>% separate(condition_undiagnosed, sep = '\\|', c("uc_1", "uc_2", "uc_3", "uc_4", "uc_5", "uc_6", "uc_7", "uc_8"), fill = 'right')
+undiagnosed %>% select(matches('uc_[1-8]')) %>% str()
+undiagnosed <- undiagnosed %>% select(matches('uc_[1-8]')) %>% mutate_each(funs = 'as.factor')
+undiagnosed %>% select(matches("uc_[1-8]")) %>% str()
+undiagnosed$na_count <- as.factor(apply(is.na(undiagnosed), MARGIN = 1, FUN = sum))
+summary(undiagnosed)
+```
+
+Create new dataframe separating diagnosed medication conditions
+
+```{r}
+med_diagnosis <- clean %>% separate(condition_diagnosed_medpro, sep = '\\|', c("cond_1", "cond_2", "cond_3", "cond_4", "cond_5", "cond_6"), fill = 'right')
+med_diagnosis %>% select(matches('cond_[1-6]')) %>% str()
+med_diagnosis <- med_diagnosis %>% select(matches('cond_[1-6]')) %>% mutate_each(funs = 'as.factor')
+med_diagnosis %>% select(matches('cond_[1-6]')) %>% str()
+med_diagnosis$na_count <- as.factor(apply(is.na(med_diagnosis), MARGIN = 1, FUN = sum))
+summary(med_diagnosis)
+```
+
+Clean med_diagnosis levels: 
+
+```{r}
+med_diagnosis$cond_1 <- as.character(med_diagnosis$cond_1)
+med_diagnosis$cond_1[med_diagnosis$cond_1 == "attention deficit disorder (but not the hyperactive version)"] <- c("ADD/ADHD")
+med_diagnosis$cond_1[med_diagnosis$cond_1 == "Attention Deficit Hyperactivity Disorder"] <- c("ADD/ADHD")
+med_diagnosis$cond_1[med_diagnosis$cond_1 == "ADD (w/o Hyperactivity)"] <- c("ADD/ADHD")
+med_diagnosis$cond_1[med_diagnosis$cond_1 == "Autism - while not a \"mental illness\", still greatly affects how I handle anxiety"] <- c("Autism Spectrum Disorder")
+med_diagnosis$cond_1[med_diagnosis$cond_1 == "Autism (Asperger's)"] <- c("Asperger Syndrome")
+med_diagnosis$cond_1[med_diagnosis$cond_1 == "autism spectrum disorder"] <- c("Autism Spectrum Disorder")
+med_diagnosis$cond_1 <- as.factor(med_diagnosis$cond_1)
+```
+
+
+See how many people live and work in the same country 
+
+```{r}
+clean$country <- as.factor(ifelse(as.character(clean$home_country) == as.character(clean$work_country), c("same"), c("different")))
+summary(clean$country)
+```
+
+See how many people live and work in the same state (applicable to individual working in the US only) - NA refers to individuals who do not live in the US
+
+```{r}
+clean$state <- as.factor(ifelse(as.character(clean$home_state) == as.character(clean$work_state), c("same"), c("different")))
+summary(clean$state)
+```
+
+EXPLORATORY ANALYSIS 
+
+Most common current diagnoses among IT/tech workers:
+
+```{r}
+library(ggplot2)
+subcd1 <- subset(currentdiagnosis, !is.na(currentdiagnosis$curdiag_1))
+ggplot(data = subcd1, aes(x = curdiag_1)) + geom_bar(fill = 'red') + labs(x = "Diagnosis", y = "Count") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+Most common diagnosis among IT/Tech workers are Anxety and Mood disorders. On average, most individuals disclosed one diagnosis, however some individuals stated up to a combination of 8 diagnoses. 
+
+Most common work position: 
+
+```{r}
+wp1 <- subset(job, !is.na(job$wp_1))
+ggplot(data = wp1, aes(x = wp_1)) + geom_bar(fill = 'purple') + labs(x = "Position", y = "Count") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+The most common work positions are Back-end Developer and Front-end Developer. Most individuals stated they did at least one job, with individuals stating they did up to 10 different jobs. 
+
+Most common undiagnosed condition : 
+
+```{r}
+undiag1 <- subset(undiagnosed, !is.na(undiagnosed$uc_1))
+ggplot(data = undiag1, aes(x = uc_1)) + geom_bar(fill = 'green') + labs(x = "Undiagnosed Condition", y = "Count") + theme(axis.text.x = element_text(angle = 90))
+```
+
+Most individuals feel they have an undiagnosed Anxiety or Mood disorder. 
+
+Most common medically diagnosed condition: 
+
+```{r}
+meddiag1 <- subset(med_diagnosis, !is.na(med_diagnosis$cond_1))
+ggplot(data = meddiag1, aes(x = cond_1)) + geom_bar(fill = 'yellow') + labs(x = "Medical Diagnosis", y = "Count") + theme(axis.text.x = element_text(angle = 90))
+```
+
+Most individuals have been medically diagnosed with an Anxiety or Mood disorder 
+
+Demographic Data: 
+
+```{r}
+ggplot(data = clean, aes(x = home_country)) + geom_bar(fill = 'blue') + labs(x = "Country", y = "Count") + theme(axis.text.x = element_text(angle = 90))
+ggplot(data = clean, aes(x = work_country)) + geom_bar(fill = 'blue') + labs(x = "Country", y = "Count") + theme(axis.text.x = element_text(angle = 90))
+```
+
+Most respondents are from the United States and work in the United States, with the UK coming in second. 
+
+Most respondents live and work in the same country. 
+
+```{r}
+ggplot(data = clean, aes(x = country)) + geom_bar(fill = 'blue') + labs(x = "Country: Work and Live", y = "Count")
+```
+
+Gender of Repondents
+
+```{r}
+ggplot(data = clean, aes(x = gender)) + geom_bar(fill = 'orange') + labs(x = "Gender", y = "Count")
+```
+
+Create new dataframe, removing attributes that have been moved to different dataframes 
+
+```{r}
+analysis <- clean
+analysis$ph_interview_why <- NULL 
+analysis$mh_interview_why <- NULL 
+analysis$current_diagnosis <- NULL
+analysis$condition_undiagnosed <- NULL 
+analysis$condition_diagnosed_medpro <- NULL
+analysis$work_position <- NULL 
+analysis$home_country <- NULL
+analysis$home_state <- NULL 
+analysis$work_country <- NULL
+analysis$work_state <- NULL
+analysis$self_employed <- NULL
+```
+
+Clean up 'analysis' 
+
+```{r}
+analysis$tech_role <- factor(clean$tech_role, levels = c("O", "1"), labels = c("No", "Yes"))
+analysis$agegroup <- cut(clean$age, c(9, 19,29,39,49,59,69,79), labels = c("10-19","20-29", "30-39", "40-49", "50-59", "60-69", "70-79"))
+summary(analysis$agegroup)
+analysis$age <- NULL
+```
+
+Dimensionality Reduction 
+
+```{r}
+library(FSelector)
+as.simple.formula(cutoff.biggest.diff(chi.squared(formula = diagnosed_medpro ~ ., data = analysis)), "diagnosed_medpro")
+as.simple.formula(cutoff.biggest.diff(chi.squared(formula = sought_treatment ~ ., data = analysis)), "sought_treatment")
+as.simple.formula(cutoff.biggest.diff(information.gain(formula = diagnosed_medpro ~ ., data = analysis)), "diagnosed_medpro")
+as.simple.formula(cutoff.biggest.diff(information.gain(formula = sought_treatment ~ ., data = analysis)), "sought_treatment")
+as.simple.formula(cfs(formula = diagnosed_medpro ~ ., data = analysis), "diagnosed_medpro")
+as.simple.formula(cfs(formula = sought_treatment ~ ., data = analysis), "sought_treatment")
+as.simple.formula(consistency(formula = diagnosed_medpro ~ ., data = analysis), "diagnosed_medpro")
+as.simple.formula(consistency(formula = sought_treatment ~ ., data = analysis), "sought_treatment")
+```
+
+The attributes selected by chi-squared were the same as those that were found using information gain. CFS had attributes that were found in chi-squared. Therefore, attributes found with chi-squared and consistency method will be used to for model and compared to see which model proves to be stronger after evaluation. 
+
+Logistic Regression Model predicting whether or not an individual has been diganosed by medical professional using chi-squared attributes: 
+
+```{r}
+analysis_train <- sample(nrow(analysis), floor(nrow(analysis)*0.7))
+train <- clean[analysis_train,]
+test <- clean[-analysis_train,]
+model_cs_diag <- glm(formula = diagnosed_medpro ~ mh_past + sought_treatment +  mhi_work_treated_effectively + mhi_work_not_treated_effectively + mh_current, family = "binomial", data = train)
+pred1 <- predict(model_cs_diag, interval = "prediction", newdata = test)
+```
+
+Logistic Regression Model for whether or not an individual sought treatment using chi-squared attributes:
+
+```{r}
+model_cs_treat <- glm(formula = sought_treatment ~ diagnosed_medpro + mh_past + mhi_work_treated_effectively + mhi_work_not_treated_effectively + mh_current, family = "binomial", data = train)
+pred2 <- predict(model_cs_treat, interval = "prediction", newdata = test)
+```
+
+Logistic Regression Model predicting whether or not an individual has been diagnosed by medical professional using consistency attributes: 
+
+```{r}
+model_con_diag <- glm(formula = diagnosed_medpro ~ no_of_employees + mental_health_benefits + options_mental_health + mh_leave_request + pe_mh_benefits + team_neg_view_mh + mh_past + mh_current + sought_treatment + mhi_work_treated_effectively, family = "binomial", data = train)
+pred3 <- predict(model_con_diag, interval = "prediction", newdata = test)
+```
+
+Logistic Regression Model predicting whether or not an individual sought treatment using consistency attributes: 
+
+```{r}
+model_con_treat <- glm(formula = sought_treatment ~ no_of_employees + mental_health_benefits + options_mental_health + anonymity + mh_leave_request + pe_mh_discuss_coworker + friends_family + mh_past + diagnosed_medpro + mhi_work_treated_effectively, family = "binomial", data = train)
+pred4 <- predict(model_con_treat, interval = "prediction", newdata = test)
+```
